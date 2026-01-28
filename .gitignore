@@ -1,0 +1,18 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Dependencies
+/vendor/
+composer.lock
+
+# Testing
+/tests/_output/
+/tests/_support/_generated/
+.phpunit.result.cache
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
