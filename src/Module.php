@@ -8,9 +8,8 @@
 namespace dmstr\anonymizer;
 
 use bizley\jwt\JwtHttpBearerAuth;
-use dmstr\anonymizer\exceptions\HelperNotFoundException;
-use dmstr\anonymizer\exceptions\InvalidHelperException;
 use dmstr\anonymizer\interfaces\AnonymizationHelperInterface;
+use dmstr\web\traits\AccessBehaviorTrait;
 use Yii;
 use yii\base\InvalidConfigException;
 
@@ -40,6 +39,10 @@ use yii\base\InvalidConfigException;
  */
 class Module extends \yii\base\Module
 {
+    use AccessBehaviorTrait {
+        AccessBehaviorTrait::behaviors as accessBehaviors;
+    }
+
     /**
      * @var string Module version
      */
@@ -250,6 +253,12 @@ class Module extends \yii\base\Module
             ],
         ];
 
+        $behaviors += parent::behaviors(); //
+        $accessBehavior = self::accessBehaviors()['access'];
+        $accessBehavior['except'] = [
+            '*/options'
+        ];
+
         // JWT authentication
         $behaviors['auth'] = [
             'class' => JwtHttpBearerAuth::class,
@@ -258,44 +267,8 @@ class Module extends \yii\base\Module
             ],
         ];
 
-        // Access control
-        $behaviors['access'] = [
-            'class' => \yii\filters\AccessControl::class,
-            'except' => ['*/options'],
-            'rules' => $this->getAccessRules(),
-        ];
-
-        return array_merge($behaviors, parent::behaviors());
+        $behaviors["access"] = $accessBehavior;
+        return $behaviors;
     }
 
-    /**
-     * Get access control rules based on configuration
-     *
-     * @return array
-     */
-    protected function getAccessRules(): array
-    {
-        $rules = [];
-
-        if ($this->requiredRole !== null) {
-            // Role-based access
-            $rules[] = [
-                'allow' => true,
-                'roles' => [$this->requiredRole],
-            ];
-        } else {
-            // Allow any authenticated user
-            $rules[] = [
-                'allow' => true,
-                'roles' => ['@'],
-            ];
-        }
-
-        // Deny all other access
-        $rules[] = [
-            'allow' => false,
-        ];
-
-        return $rules;
-    }
 }
