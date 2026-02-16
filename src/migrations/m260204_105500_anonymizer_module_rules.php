@@ -3,7 +3,7 @@
 use dmstr\rbacMigration\Migration;
 use yii\rbac\Item;
 
-class m260204_105400_anonymizer_module_rules extends Migration
+class m260204_105500_anonymizer_module_rules extends Migration
 {
     public $defaultFlags = [
         'replace' => false,
