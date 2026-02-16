@@ -181,16 +181,12 @@ class AnonymizeController extends BaseController
      * Check if user is already anonymized
      *
      * @param mixed $user
-     * @throws ConflictHttpException
      */
     protected function checkAlreadyAnonymized($user): void
     {
         if ($this->isUserAnonymized($user)) {
             $userId = $this->getUserId($user);
             Yii::info("User already anonymized: ID={$userId}", 'anonymizer');
-            throw new ConflictHttpException(
-                'User data is already anonymized. No further action required.'
-            );
         }
     }
 
