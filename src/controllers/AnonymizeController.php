@@ -43,54 +43,60 @@ class AnonymizeController extends BaseController
      *
      * @param string $uuid User UUID
      * @return array JSON response
-     * @throws BadRequestHttpException if UUID format is invalid
-     * @throws NotFoundHttpException if user not found
-     * @throws ConflictHttpException if user is already anonymized
-     * @throws ServerErrorHttpException if anonymization fails
      */
     public function actionRemove(string $uuid): array
     {
-        // Validate UUID format
-        $this->validateUuid($uuid);
+        try {
+            // Validate UUID format
+            $this->validateUuid($uuid);
 
-        // Find user
-        $user = $this->findUser($uuid);
+            // Find user
+            $user = $this->findUser($uuid);
 
-        // Check if already anonymized
-        $this->checkAlreadyAnonymized($user);
+            // Check if already anonymized
+            $this->checkAlreadyAnonymized($user);
 
-        // Execute anonymization
-        /** @var Module $module */
-        $module = $this->module;
-        $executor = new AnonymizationExecutor(
-            $module->getHelpers(),
-            $module->getDefaultOptions()
-        );
+            // Execute anonymization
+            /** @var Module $module */
+            $module = $this->module;
+            $executor = new AnonymizationExecutor(
+                $module->getHelpers(),
+                $module->getDefaultOptions()
+            );
 
-        $result = $executor->execute($user);
+            $result = $executor->execute($user);
 
-        // Log the action
-        Yii::info("User anonymized via REST: UUID={$uuid}", 'anonymizer');
+            // Log the action
+            Yii::info("User anonymized via REST: UUID={$uuid}", 'anonymizer');
 
-        if (!$result->success && empty($result->results)) {
-            Yii::error("Anonymization failed for UUID={$uuid}: " . implode(', ', $result->errors), 'anonymizer');
-            throw new ServerErrorHttpException('Anonymization failed: ' . implode(', ', $result->errors));
+            if (!$result->success && empty($result->results)) {
+                Yii::error("Anonymization failed for UUID={$uuid}: " . implode(', ', $result->errors), 'anonymizer');
+                throw new ServerErrorHttpException('Anonymization failed: ' . implode(', ', $result->errors));
+            }
+
+            return [
+                'success' => $result->success,
+                'message' => 'User data removed successfully',
+                'data' => [
+                    'user_id' => $this->getUserId($user),
+                    'user_uuid' => $uuid,
+                    'removed_at' => $result->timestamp,
+                    'helpers_executed' => $result->helpersExecuted,
+                    'total_records_updated' => $result->totalRecordsUpdated,
+                    'helpers_results' => $result->results,
+                    'errors' => $result->errors,
+                ],
+                'timestamp' => $result->timestamp,
+            ];
+        } catch (\Exception $exception) {
+            Yii::error($exception->getMessage(), 'anonymizer');
         }
 
         return [
-            'success' => $result->success,
-            'message' => 'User data removed successfully',
-            'data' => [
-                'user_id' => $this->getUserId($user),
-                'user_uuid' => $uuid,
-                'removed_at' => $result->timestamp,
-                'helpers_executed' => $result->helpersExecuted,
-                'total_records_updated' => $result->totalRecordsUpdated,
-                'helpers_results' => $result->results,
-                'errors' => $result->errors,
-            ],
-            'timestamp' => $result->timestamp,
+            'success' => false,
+            'message' => 'Exception raised while removing user data',
         ];
+
     }
 
     /**
